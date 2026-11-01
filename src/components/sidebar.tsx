@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { canAccess, type Role } from "@/lib/roles";
+import { logoutAction } from "@/lib/auth-actions";
 
 const menuItems = [
   {
@@ -65,7 +67,7 @@ const menuItems = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ role }: { role: Role }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -95,7 +97,13 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
-        {menuItems.map((group) => (
+        {menuItems
+          .map((group) => ({
+            ...group,
+            items: group.items.filter((item) => canAccess(role, item.href)),
+          }))
+          .filter((group) => group.items.length > 0)
+          .map((group) => (
           <div key={group.label}>
             {!collapsed && (
               <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest px-3 mb-2">
@@ -137,10 +145,15 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="border-t border-white/10 px-3 py-3 space-y-1">
-        <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-all duration-200 w-full">
-          <LogOut className="w-5 h-5 shrink-0" />
-          {!collapsed && <span>Logout</span>}
-        </button>
+        <form action={logoutAction}>
+          <button
+            type="submit"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-400/10 transition-all duration-200 w-full"
+          >
+            <LogOut className="w-5 h-5 shrink-0" />
+            {!collapsed && <span>Keluar</span>}
+          </button>
+        </form>
       </div>
 
       {/* Collapse Toggle */}

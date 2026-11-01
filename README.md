@@ -26,6 +26,22 @@ Web portal manajemen arus kas, laporan keuangan, dan inventarisasi sparepart ala
 
 ---
 
+## Login & Hak Akses
+
+Semua halaman `/dashboard` dilindungi login. Sesi disimpan di cookie `httpOnly` yang ditandatangani HMAC (berlaku 8 jam).
+
+Akun demo (data simulasi di `src/lib/auth.ts`):
+
+| Peran | Email | Kata sandi |
+|---|---|---|
+| Super Admin | admin@skyterra.co.id | Admin#2026 |
+| Manajer Divisi | manajer@skyterra.co.id | Manajer#2026 |
+| Viewer | viewer@skyterra.co.id | Viewer#2026 |
+
+Aturan akses per halaman diatur di `src/lib/roles.ts`. Isi `AUTH_SECRET` di `.env.local` sebelum menjalankan di production.
+
+---
+
 ## Tech Stack
 
 - **Frontend:** Next.js (React), Tailwind CSS
