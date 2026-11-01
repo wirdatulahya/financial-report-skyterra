@@ -38,7 +38,9 @@ Akun demo (data simulasi di `src/lib/auth.ts`):
 | Manajer Divisi | manajer@skyterra.co.id | Manajer#2026 |
 | Viewer | viewer@skyterra.co.id | Viewer#2026 |
 
-Aturan akses per halaman diatur di `src/lib/roles.ts`. Isi `AUTH_SECRET` di `.env.local` sebelum menjalankan di production.
+Aturan akses per halaman diatur di `src/lib/roles.ts`.
+
+Halaman **Profil Saya** (`/dashboard/profile`, atau klik nama di header) menampilkan data akun, hak akses per modul, sisa waktu sesi, dan form ubah kata sandi. Untuk saat ini kata sandi baru disimpan di memori server dan kembali ke bawaan saat server di-restart. Isi `AUTH_SECRET` di `.env.local` sebelum menjalankan di production.
 
 ---
 

@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Globe,
+  UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -58,6 +59,11 @@ const menuItems = [
   {
     label: "Sistem",
     items: [
+      {
+        name: "Profil Saya",
+        href: "/dashboard/profile",
+        icon: UserCircle,
+      },
       {
         name: "Pengaturan",
         href: "/dashboard/settings",

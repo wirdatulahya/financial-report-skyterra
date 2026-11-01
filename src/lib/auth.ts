@@ -107,13 +107,21 @@ function timingSafeEqual(a: string, b: string): boolean {
 // ------------------------------------------------------------
 // API publik
 // ------------------------------------------------------------
+// Kata sandi yang diubah lewat halaman Profil. Disimpan di memori server
+// (hilang saat server restart) sampai tabel `users` di database tersedia.
+// Disimpan di globalThis karena Next.js bisa memuat modul ini lebih dari sekali
+// (per rute), sehingga variabel modul biasa tidak saling berbagi.
+const globalStore = globalThis as unknown as { __skyterraPw?: Map<string, string> };
+const passwordOverrides = (globalStore.__skyterraPw ??= new Map<string, string>());
+
 export async function verifyCredentials(
   email: string,
   password: string
 ): Promise<SessionUser | null> {
   const user = USERS.find((u) => u.email === email.trim().toLowerCase());
   const hash = await sha256Hex(password);
-  if (!user || !timingSafeEqual(hash, user.passwordHash)) return null;
+  const expected = user ? passwordOverrides.get(user.id) ?? user.passwordHash : "";
+  if (!user || !timingSafeEqual(hash, expected)) return null;
   const { passwordHash: _omit, ...sessionUser } = user;
   return sessionUser;
 }
@@ -128,9 +136,9 @@ export async function createSessionToken(user: SessionUser): Promise<string> {
   return `${payload}.${toBase64Url(new Uint8Array(sig))}`;
 }
 
-export async function verifySessionToken(
+export async function verifySession(
   token: string | undefined
-): Promise<SessionUser | null> {
+): Promise<{ user: SessionUser; expiresAt: number } | null> {
   if (!token) return null;
   const [payload, sig] = token.split(".");
   if (!payload || !sig) return null;
@@ -144,9 +152,27 @@ export async function verifySessionToken(
     if (!valid) return null;
     const session = JSON.parse(new TextDecoder().decode(fromBase64Url(payload))) as Session;
     if (session.exp < Math.floor(Date.now() / 1000)) return null;
-    const { exp: _exp, ...user } = session;
-    return user;
+    const { exp, ...user } = session;
+    return { user, expiresAt: exp * 1000 };
   } catch {
     return null;
   }
+}
+
+export async function verifySessionToken(
+  token: string | undefined
+): Promise<SessionUser | null> {
+  return (await verifySession(token))?.user ?? null;
+}
+
+export async function changePassword(
+  userId: string,
+  email: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<boolean> {
+  const user = await verifyCredentials(email, currentPassword);
+  if (!user || user.id !== userId) return false;
+  passwordOverrides.set(userId, await sha256Hex(newPassword));
+  return true;
 }

@@ -27,3 +27,19 @@ export function canAccess(role: Role, pathname: string): boolean {
   const rule = RESTRICTED_ROUTES.find((r) => pathname.startsWith(r.prefix));
   return !rule || rule.roles.includes(role);
 }
+
+// Modul aplikasi — dipakai untuk menampilkan hak akses di halaman Profil.
+export const MODULES: { name: string; href: string }[] = [
+  { name: "Dashboard", href: "/dashboard" },
+  { name: "Arus Kas", href: "/dashboard/cashflow" },
+  { name: "Inventaris Sparepart", href: "/dashboard/sparepart" },
+  { name: "Kalkulator Pajak", href: "/dashboard/tax" },
+  { name: "Laporan PDF", href: "/dashboard/reports" },
+  { name: "Pengaturan", href: "/dashboard/settings" },
+];
+
+export const ROLE_DESCRIPTION: Record<Role, string> = {
+  super_admin: "Akses penuh ke semua modul dan data seluruh divisi.",
+  manajer_divisi: "Mengelola transaksi, stok, dan laporan untuk divisinya sendiri.",
+  viewer: "Melihat data divisinya tanpa bisa menambah atau mengubah.",
+};

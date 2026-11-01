@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Bell, Search } from "lucide-react";
 import { ROLE_LABEL, type SessionUser } from "@/lib/roles";
 
@@ -37,7 +38,11 @@ export default function Header({ user }: { user: SessionUser }) {
         </span>
 
         {/* Profile */}
-        <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+        <Link
+          href="/dashboard/profile"
+          title="Lihat profil"
+          className="flex items-center gap-3 pl-4 border-l border-gray-200 rounded-lg hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-skyterra-blue/30"
+        >
           <div className="text-right">
             <p className="text-sm font-semibold text-gray-800">{user.name}</p>
             <p className="text-[11px] text-gray-400">{user.division}</p>
@@ -45,7 +50,7 @@ export default function Header({ user }: { user: SessionUser }) {
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-skyterra-cyan to-skyterra-blue flex items-center justify-center">
             <span className="text-xs font-semibold text-white">{initials}</span>
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   );
