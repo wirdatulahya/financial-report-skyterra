@@ -19,7 +19,7 @@ export default function Header({ user }: { user: SessionUser }) {
         <Search className="w-4 h-4 text-gray-400" />
         <input
           type="text"
-          placeholder="Cari transaksi, sparepart, laporan..."
+          placeholder="Cari transaksi atau laporan..."
           className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
         />
       </div>

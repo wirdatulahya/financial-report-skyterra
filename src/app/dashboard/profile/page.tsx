@@ -1,14 +1,8 @@
 import { redirect } from "next/navigation";
-import { Check, Clock, LogOut, Minus } from "lucide-react";
+import { Clock, LogOut } from "lucide-react";
 import { getCurrentSession } from "@/lib/session";
 import { logoutAction } from "@/lib/auth-actions";
-import {
-  MODULES,
-  ROLE_DESCRIPTION,
-  ROLE_LABEL,
-  canAccess,
-  type Role,
-} from "@/lib/roles";
+import { ROLE_LABEL, type Role } from "@/lib/roles";
 import PasswordForm from "./password-form";
 
 export const metadata = { title: "Profil Saya — SkyTerra Financial Portal" };
@@ -37,15 +31,13 @@ export default async function ProfilePage() {
     .join("")
     .toUpperCase();
 
-  const dataScope =
-    user.role === "super_admin" ? "Semua divisi" : `Hanya ${user.division}`;
 
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Profil Saya</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Informasi akun, hak akses, dan keamanan login Anda.
+          Informasi akun dan keamanan login Anda.
         </p>
       </div>
 
@@ -79,79 +71,35 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Hak akses */}
-        <section className="lg:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h2 className="text-base font-semibold text-gray-900">Hak akses</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Keamanan */}
+        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <h2 className="text-base font-semibold text-gray-900">Ubah kata sandi</h2>
           <p className="text-sm text-gray-500 mt-1">
-            {ROLE_DESCRIPTION[user.role]}
+            Minimal 8 karakter, kombinasi huruf dan angka.
           </p>
-
-          <div className="mt-4 rounded-xl bg-gray-50 px-4 py-3 text-sm">
-            <span className="text-gray-500">Cakupan data: </span>
-            <span className="font-semibold text-gray-800">{dataScope}</span>
-          </div>
-
-          <ul className="mt-4 divide-y divide-gray-100">
-            {MODULES.map((m) => {
-              const allowed = canAccess(user.role, m.href);
-              return (
-                <li key={m.href} className="flex items-center justify-between py-3">
-                  <span
-                    className={
-                      allowed ? "text-sm text-gray-800" : "text-sm text-gray-400"
-                    }
-                  >
-                    {m.name}
-                  </span>
-                  {allowed ? (
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                      <Check className="w-4 h-4" /> Bisa diakses
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-gray-400">
-                      <Minus className="w-4 h-4" /> Tidak ada akses
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          <p className="mt-4 text-xs text-gray-400">
-            Perubahan peran hanya bisa dilakukan oleh Super Admin.
-          </p>
+          <PasswordForm />
         </section>
 
-        {/* Keamanan */}
-        <div className="lg:col-span-2 space-y-6">
-          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="text-base font-semibold text-gray-900">Ubah kata sandi</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Minimal 8 karakter, kombinasi huruf dan angka.
-            </p>
-            <PasswordForm />
-          </section>
-
-          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="text-base font-semibold text-gray-900">Sesi login</h2>
-            <p className="mt-3 flex items-center gap-2 text-sm text-gray-600">
-              <Clock className="w-4 h-4 text-gray-400" />
-              Berakhir otomatis pukul{" "}
-              <span className="font-semibold text-gray-800 tabular-nums">
-                {timeFmt.format(expiresAt)} WIB
-              </span>
-            </p>
-            <form action={logoutAction} className="mt-4">
-              <button
-                type="submit"
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-                Keluar dari akun
-              </button>
-            </form>
-          </section>
-        </div>
+        <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <h2 className="text-base font-semibold text-gray-900">Sesi login</h2>
+          <p className="mt-3 flex items-center gap-2 text-sm text-gray-600">
+            <Clock className="w-4 h-4 text-gray-400" />
+            Berakhir otomatis pukul{" "}
+            <span className="font-semibold text-gray-800 tabular-nums">
+              {timeFmt.format(expiresAt)} WIB
+            </span>
+          </p>
+          <form action={logoutAction} className="mt-4">
+            <button
+              type="submit"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Keluar dari akun
+            </button>
+          </form>
+        </section>
       </div>
     </div>
   );

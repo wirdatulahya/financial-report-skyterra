@@ -40,7 +40,7 @@ Akun demo (data simulasi di `src/lib/auth.ts`):
 
 Aturan akses per halaman diatur di `src/lib/roles.ts`.
 
-Halaman **Profil Saya** (`/dashboard/profile`, atau klik nama di header) menampilkan data akun, hak akses per modul, sisa waktu sesi, dan form ubah kata sandi. Untuk saat ini kata sandi baru disimpan di memori server dan kembali ke bawaan saat server di-restart. Isi `AUTH_SECRET` di `.env.local` sebelum menjalankan di production.
+Halaman **Profil Saya** (`/dashboard/profile`, atau klik nama di header) menampilkan data akun, sisa waktu sesi, dan form ubah kata sandi. Untuk saat ini kata sandi baru disimpan di memori server dan kembali ke bawaan saat server di-restart. Isi `AUTH_SECRET` di `.env.local` sebelum menjalankan di production.
 
 ---
 
