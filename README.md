@@ -42,6 +42,10 @@ Aturan akses per halaman diatur di `src/lib/roles.ts`.
 
 Halaman **Profil Saya** (`/dashboard/profile`, atau klik nama di header) menampilkan data akun, sisa waktu sesi, dan form ubah kata sandi. Untuk saat ini kata sandi baru disimpan di memori server dan kembali ke bawaan saat server di-restart. Isi `AUTH_SECRET` di `.env.local` sebelum menjalankan di production.
 
+### Upload Transaksi (Arus Kas)
+
+Halaman Arus Kas kosong sampai ada data yang di-upload atau ditambahkan manual. **Bulk Upload** menerima `.xlsx`/`.csv` (maks. 2 MB, 500 baris) dengan kolom `Tanggal | Keterangan | Divisi | Kategori | Jenis | Jumlah`; template bisa diunduh dari dialog upload. File divalidasi di server per baris (tanggal, divisi, kategori vs jenis, jumlah) dan ditampilkan pratinjaunya sebelum diimpor; baris error dilewati. Manajer Divisi hanya bisa mengimpor dan melihat data divisinya, Viewer hanya melihat. Data disimpan di memori server (`src/lib/transactions.ts`) sampai database tersedia.
+
 ---
 
 ## Tech Stack
