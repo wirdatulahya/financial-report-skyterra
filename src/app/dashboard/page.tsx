@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowDownRight, ArrowUpRight, Building2, FileSpreadsheet, TrendingDown, TrendingUp, Upload, Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Building2, FileSpreadsheet, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { formatRupiah } from "@/lib/utils";
 import { divisions } from "@/lib/mock-data";
 import { getCurrentUser } from "@/lib/session";
-import { canWrite, listTransactions } from "@/lib/transactions";
+import { listTransactions } from "@/lib/transactions";
 import CashflowChart from "./cashflow-chart";
 
 export const dynamic = "force-dynamic";
@@ -76,16 +76,13 @@ export default async function DashboardPage() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-semibold text-gray-800">Belum ada data transaksi</p>
-            <p className="text-sm text-gray-500">Ringkasan dan grafik akan terisi otomatis setelah transaksi diupload di halaman Arus Kas.</p>
+            <p className="text-sm text-gray-500">
+              Ringkasan dan grafik akan terisi otomatis setelah transaksi ditambahkan melalui menu{" "}
+              <Link href="/dashboard/cashflow" className="text-skyterra-cyan font-semibold hover:underline">
+                Arus Kas
+              </Link>.
+            </p>
           </div>
-          {canWrite(user) && (
-            <Link
-              href="/dashboard/cashflow"
-              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-skyterra-cyan to-skyterra-blue text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
-            >
-              <Upload className="w-4 h-4" /> Upload Transaksi
-            </Link>
-          )}
         </div>
       )}
 
