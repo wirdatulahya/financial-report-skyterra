@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import {
   AlertTriangle,
@@ -13,6 +13,7 @@ import {
   Loader2,
   Plus,
   Search,
+  Trash2,
   Upload,
   X,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { formatRupiah } from "@/lib/utils";
 import { categories, divisions, type Transaction } from "@/lib/mock-data";
 import {
   addTransactionAction,
+  deleteTransactionsAction,
   uploadTransactionsAction,
   type AddState,
   type UploadState,
@@ -179,6 +181,7 @@ function BulkUploadModal({ onClose }: { onClose: () => void }) {
           accept=".xlsx,.csv"
           className="sr-only"
           onChange={(e) => pick(e.target.files?.[0])}
+          onClick={(e) => e.stopPropagation()}
         />
 
         {!imported && (
@@ -197,21 +200,26 @@ function BulkUploadModal({ onClose }: { onClose: () => void }) {
                   <p className="text-sm font-semibold text-gray-800 truncate">{file.name}</p>
                   <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
                 </div>
-                <label htmlFor="bulk-file" className="text-xs font-semibold text-skyterra-blue hover:underline cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  className="text-xs font-semibold text-skyterra-blue hover:underline"
+                >
                   Ganti file
-                </label>
+                </button>
               </div>
             ) : (
               <>
                 <Upload className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                 <p className="text-sm font-semibold text-gray-700">Seret file Excel/CSV ke sini</p>
                 <p className="text-xs text-gray-400 mt-1">atau pilih file (.xlsx, .csv — maksimal 500 baris, 2 MB)</p>
-                <label
-                  htmlFor="bulk-file"
-                  className="inline-block mt-4 px-5 py-2 bg-gray-100 text-sm font-semibold text-gray-600 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  className="mt-4 px-5 py-2 bg-gray-100 text-sm font-semibold text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   Pilih File
-                </label>
+                </button>
               </>
             )}
           </div>
@@ -325,6 +333,39 @@ function BulkUploadModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ──────────────── Konfirmasi Hapus ────────────────
+function ConfirmDeleteModal({
+  count,
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  count: number;
+  pending: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal title="Hapus transaksi?" onClose={onCancel}>
+      <p className="text-sm text-gray-600">
+        {count === 1 ? "1 transaksi" : `${count} transaksi`} akan dihapus permanen dan tidak bisa dikembalikan.
+      </p>
+      <div className="flex gap-3 pt-6">
+        <button type="button" onClick={onCancel} disabled={pending} className={secondaryBtn}>Batal</button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={pending}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-semibold hover:bg-rose-700 transition-colors disabled:opacity-60"
+        >
+          {pending && <Loader2 className="w-4 h-4 animate-spin" />}
+          {pending ? "Menghapus…" : "Hapus"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 // ──────────────── Halaman Arus Kas ────────────────
 export default function CashflowClient({
   transactions,
@@ -339,6 +380,25 @@ export default function CashflowClient({
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [filterType, setFilterType] = useState<"all" | "income" | "expense">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [toDelete, setToDelete] = useState<string[] | null>(null);
+  const [notice, setNotice] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+  const [deleting, startDelete] = useTransition();
+
+  // Buang pilihan yang datanya sudah tidak ada
+  useEffect(() => {
+    setSelected((prev) => {
+      const ids = new Set(transactions.map((t) => t.id));
+      const next = new Set(Array.from(prev).filter((id) => ids.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [transactions]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 4000);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   const filtered = transactions.filter((trx) => {
     if (filterType !== "all" && trx.type !== filterType) return false;
@@ -349,6 +409,38 @@ export default function CashflowClient({
   const totalIncome = transactions.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const totalExpense = transactions.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const isEmpty = transactions.length === 0;
+
+  const allVisibleSelected = filtered.length > 0 && filtered.every((t) => selected.has(t.id));
+  function toggleAll() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) filtered.forEach((t) => next.delete(t.id));
+      else filtered.forEach((t) => next.add(t.id));
+      return next;
+    });
+  }
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function confirmDelete() {
+    if (!toDelete) return;
+    const ids = toDelete;
+    startDelete(async () => {
+      const res = await deleteTransactionsAction(ids);
+      setToDelete(null);
+      if (res.ok) {
+        setSelected((prev) => new Set(Array.from(prev).filter((id) => !ids.includes(id))));
+        setNotice({ type: "ok", text: `${res.deleted} transaksi dihapus.` });
+      } else {
+        setNotice({ type: "error", text: res.message ?? "Gagal menghapus." });
+      }
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -377,6 +469,17 @@ export default function CashflowClient({
           </div>
         )}
       </div>
+
+      {notice && (
+        <p
+          role="status"
+          className={`rounded-xl px-4 py-3 text-sm border ${
+            notice.type === "ok" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-rose-50 border-rose-200 text-rose-700"
+          }`}
+        >
+          {notice.text}
+        </p>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
@@ -418,7 +521,7 @@ export default function CashflowClient({
         ) : (
           <>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Filter className="w-4 h-4 text-gray-400" />
                 <div className="flex bg-gray-100 rounded-lg p-0.5">
                   {(["all", "income", "expense"] as const).map((t) => (
@@ -434,6 +537,14 @@ export default function CashflowClient({
                   ))}
                 </div>
                 <span className="text-xs text-gray-400 ml-1">{filtered.length} transaksi</span>
+                {canWrite && selected.size > 0 && (
+                  <button
+                    onClick={() => setToDelete(Array.from(selected))}
+                    className="ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 text-xs font-semibold text-rose-600 hover:bg-rose-100 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Hapus {selected.size} terpilih
+                  </button>
+                )}
               </div>
               <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 w-full sm:w-72">
                 <Search className="w-4 h-4 text-gray-400" />
@@ -451,17 +562,43 @@ export default function CashflowClient({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                    {canWrite && (
+                      <th className="w-10 py-3 pl-3">
+                        <input
+                          type="checkbox"
+                          aria-label="Pilih semua transaksi yang tampil"
+                          checked={allVisibleSelected}
+                          onChange={toggleAll}
+                          className="rounded border-gray-300"
+                        />
+                      </th>
+                    )}
                     <th className="text-left py-3 px-3 font-semibold">Tanggal</th>
                     <th className="text-left py-3 px-3 font-semibold">Keterangan</th>
                     <th className="text-left py-3 px-3 font-semibold">Divisi</th>
                     <th className="text-left py-3 px-3 font-semibold">Kategori</th>
                     <th className="text-left py-3 px-3 font-semibold">Jenis</th>
                     <th className="text-right py-3 px-3 font-semibold">Jumlah</th>
+                    {canWrite && <th className="w-12 py-3 px-3"><span className="sr-only">Aksi</span></th>}
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((trx) => (
-                    <tr key={trx.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <tr
+                      key={trx.id}
+                      className={`border-b border-gray-50 transition-colors ${selected.has(trx.id) ? "bg-skyterra-cyan/5" : "hover:bg-gray-50/50"}`}
+                    >
+                      {canWrite && (
+                        <td className="py-3 pl-3">
+                          <input
+                            type="checkbox"
+                            aria-label={`Pilih ${trx.description}`}
+                            checked={selected.has(trx.id)}
+                            onChange={() => toggleOne(trx.id)}
+                            className="rounded border-gray-300"
+                          />
+                        </td>
+                      )}
                       <td className="py-3 px-3 text-gray-500 whitespace-nowrap">{fmtDate(trx.date)}</td>
                       <td className="py-3 px-3 text-gray-800 font-medium max-w-xs truncate">{trx.description}</td>
                       <td className="py-3 px-3 text-gray-500 whitespace-nowrap">{trx.division}</td>
@@ -476,6 +613,18 @@ export default function CashflowClient({
                       <td className={`py-3 px-3 text-right font-semibold whitespace-nowrap ${trx.type === "income" ? "text-emerald-600" : "text-rose-500"}`}>
                         {trx.type === "income" ? "+" : "-"}{formatRupiah(trx.amount)}
                       </td>
+                      {canWrite && (
+                        <td className="py-3 px-3 text-right">
+                          <button
+                            onClick={() => setToDelete([trx.id])}
+                            aria-label={`Hapus ${trx.description}`}
+                            title="Hapus"
+                            className="p-1.5 rounded-lg text-gray-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -490,6 +639,14 @@ export default function CashflowClient({
 
       {showAddModal && <AddTransactionModal onClose={() => setShowAddModal(false)} lockedDivision={lockedDivision} />}
       {showBulkModal && <BulkUploadModal onClose={() => setShowBulkModal(false)} />}
+      {toDelete && (
+        <ConfirmDeleteModal
+          count={toDelete.length}
+          pending={deleting}
+          onCancel={() => setToDelete(null)}
+          onConfirm={confirmDelete}
+        />
+      )}
     </div>
   );
 }

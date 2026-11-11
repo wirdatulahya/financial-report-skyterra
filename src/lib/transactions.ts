@@ -44,6 +44,20 @@ export function insertTransactions(rows: NewTransaction[]): number {
   return rows.length;
 }
 
+/** Hapus transaksi berdasarkan id. Non-Super Admin hanya bisa menghapus data divisinya. */
+export function deleteTransactions(ids: string[], user: SessionUser): number {
+  const target = new Set(ids);
+  let removed = 0;
+  for (let i = db.length - 1; i >= 0; i--) {
+    const t = db[i];
+    if (!target.has(t.id)) continue;
+    if (user.role !== "super_admin" && t.division !== user.division) continue;
+    db.splice(i, 1);
+    removed++;
+  }
+  return removed;
+}
+
 // ------------------------------------------------------------
 // Hak akses
 // ------------------------------------------------------------

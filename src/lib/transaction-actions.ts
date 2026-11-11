@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/session";
 import {
   UploadError,
   canWrite,
+  deleteTransactions,
   insertTransactions,
   parseUpload,
   validateRow,
@@ -24,6 +25,11 @@ export interface UploadState {
 }
 
 const MAX_ERRORS_SHOWN = 50;
+
+function revalidateCashflow() {
+  revalidatePath("/dashboard/cashflow");
+  revalidatePath("/dashboard");
+}
 
 async function requireWriter() {
   const user = await getCurrentUser();
@@ -66,7 +72,7 @@ export async function uploadTransactionsAction(
       return { status: "error", ...base, message: "Tidak ada baris valid untuk diimpor." };
     }
     const saved = insertTransactions(result.valid);
-    revalidatePath("/dashboard/cashflow");
+    revalidateCashflow();
     return {
       status: "imported",
       ...base,
@@ -106,11 +112,32 @@ export async function addTransactionAction(
     );
     if (!v.ok) return { status: "error", messages: v.messages };
     insertTransactions([v.value]);
-    revalidatePath("/dashboard/cashflow");
+    revalidateCashflow();
     return { status: "success" };
   } catch (e) {
     if (e instanceof UploadError) return { status: "error", messages: [e.message] };
     console.error("[tambah transaksi]", e);
     return { status: "error", messages: ["Terjadi kesalahan. Coba lagi."] };
+  }
+}
+
+export interface DeleteResult {
+  ok: boolean;
+  deleted?: number;
+  message?: string;
+}
+
+export async function deleteTransactionsAction(ids: string[]): Promise<DeleteResult> {
+  try {
+    const user = await requireWriter();
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > 1000 || !ids.every((x) => typeof x === "string"))
+      return { ok: false, message: "Tidak ada transaksi yang dipilih." };
+    const deleted = deleteTransactions(ids, user);
+    revalidateCashflow();
+    return { ok: true, deleted };
+  } catch (e) {
+    if (e instanceof UploadError) return { ok: false, message: e.message };
+    console.error("[hapus transaksi]", e);
+    return { ok: false, message: "Gagal menghapus transaksi. Coba lagi." };
   }
 }
