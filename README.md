@@ -46,6 +46,10 @@ Halaman **Profil Saya** (`/dashboard/profile`, atau klik nama di header) menampi
 
 Halaman Arus Kas kosong sampai ada data yang di-upload atau ditambahkan manual. **Bulk Upload** menerima `.xlsx`/`.csv` (maks. 2 MB, 500 baris) dengan kolom `Tanggal | Keterangan | Divisi | Kategori | Jenis | Jumlah`; template bisa diunduh dari dialog upload. File divalidasi di server per baris (tanggal, divisi, kategori vs jenis, jumlah) dan ditampilkan pratinjaunya sebelum diimpor; baris error dilewati. Manajer Divisi hanya bisa mengimpor dan melihat data divisinya, Viewer hanya melihat. Data disimpan di memori server (`src/lib/transactions.ts`) sampai database tersedia.
 
+### Inventaris Sparepart
+
+Tabel sparepart (nama, kategori, stok, min. stok, harga satuan) dengan CRUD lengkap: tambah barang, edit data barang, hapus, serta pencatatan **stok masuk / keluar** beserta riwayatnya. Barang dengan stok di bawah batas minimum ditandai merah, muncul paling atas, dan dirangkum di banner peringatan. Validasi dilakukan di server (nama tidak boleh dobel, angka bulat ≥ 0, stok keluar tidak boleh melebihi sisa). Super Admin & Manajer Divisi bisa mengubah, Viewer hanya melihat. Data disimpan di memori server (`src/lib/inventory.ts`) sampai database tersedia.
+
 ---
 
 ## Tech Stack
