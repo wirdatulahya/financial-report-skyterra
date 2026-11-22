@@ -362,19 +362,9 @@ export default function InventoryClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inventaris Sparepart</h1>
-          <p className="text-sm text-gray-500 mt-1">Stok suku cadang alat survei dan pemetaan geospasial.</p>
-        </div>
-        {canManage && (
-          <button
-            onClick={() => setEditItem(null)}
-            className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-skyterra-cyan to-skyterra-blue text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
-          >
-            <Plus className="w-4 h-4" /> Tambah Barang
-          </button>
-        )}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Inventaris Sparepart</h1>
+        <p className="text-sm text-gray-500 mt-1">Stok suku cadang alat survei dan pemetaan geospasial.</p>
       </div>
 
       {notice && (

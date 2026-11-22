@@ -444,30 +444,12 @@ export default function CashflowClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Arus Kas</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Kelola transaksi pemasukan dan pengeluaran harian perusahaan.
-            {lockedDivision && <> Menampilkan data {lockedDivision}.</>}
-          </p>
-        </div>
-        {canWrite && (
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setShowBulkModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              <Upload className="w-4 h-4" /> Bulk Upload
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-skyterra-cyan to-skyterra-blue text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
-            >
-              <Plus className="w-4 h-4" /> Tambah Transaksi
-            </button>
-          </div>
-        )}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Arus Kas</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Kelola transaksi pemasukan dan pengeluaran harian perusahaan.
+          {lockedDivision && <> Menampilkan data {lockedDivision}.</>}
+        </p>
       </div>
 
       {notice && (
@@ -559,15 +541,33 @@ export default function CashflowClient({
                   </button>
                 )}
               </div>
-              <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 w-full sm:w-72">
-                <Search className="w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Cari transaksi..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
-                />
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 w-full sm:w-64">
+                  <Search className="w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari transaksi..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
+                  />
+                </div>
+                {canWrite && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => setShowBulkModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      <Upload className="w-4 h-4" /> Bulk Upload
+                    </button>
+                    <button
+                      onClick={() => setShowAddModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-skyterra-cyan to-skyterra-blue text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm"
+                    >
+                      <Plus className="w-4 h-4" /> Tambah Transaksi
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
