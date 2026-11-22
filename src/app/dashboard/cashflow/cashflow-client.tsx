@@ -499,24 +499,37 @@ export default function CashflowClient({
 
       <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
         {isEmpty ? (
-          <div className="py-14 text-center">
-            <div className="mx-auto w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center">
-              <FileSpreadsheet className="w-6 h-6 text-gray-300" />
+          <div>
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+              <h2 className="text-sm font-bold text-gray-700">Daftar Transaksi</h2>
+              {canWrite && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowBulkModal(true)}
+                    className="flex items-center gap-2 px-3.5 py-2 border border-gray-200 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    <Upload className="w-4 h-4" /> Bulk Upload
+                  </button>
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-skyterra-cyan to-skyterra-blue text-white rounded-xl text-xs sm:text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" /> Tambah Transaksi
+                  </button>
+                </div>
+              )}
             </div>
-            <p className="mt-4 text-sm font-semibold text-gray-700">Belum ada transaksi</p>
-            <p className="mt-1 text-sm text-gray-400 max-w-sm mx-auto">
-              {canWrite
-                ? "Upload file Excel/CSV atau tambahkan transaksi satu per satu untuk mulai mencatat arus kas."
-                : "Transaksi akan tampil di sini setelah Manajer Divisi atau Super Admin mencatatnya."}
-            </p>
-            {canWrite && (
-              <button
-                onClick={() => setShowBulkModal(true)}
-                className="mt-5 inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                <Upload className="w-4 h-4" /> Upload File
-              </button>
-            )}
+            <div className="py-14 text-center">
+              <div className="mx-auto w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center">
+                <FileSpreadsheet className="w-6 h-6 text-gray-300" />
+              </div>
+              <p className="mt-4 text-sm font-semibold text-gray-700">Belum ada transaksi</p>
+              <p className="mt-1 text-sm text-gray-400 max-w-sm mx-auto">
+                {canWrite
+                  ? "Upload file Excel/CSV atau tambahkan transaksi satu per satu untuk mulai mencatat arus kas."
+                  : "Transaksi akan tampil di sini setelah Manajer Divisi atau Super Admin mencatatnya."}
+              </p>
+            </div>
           </div>
         ) : (
           <>

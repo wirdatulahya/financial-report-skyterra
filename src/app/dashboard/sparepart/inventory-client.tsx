@@ -430,24 +430,29 @@ export default function InventoryClient({
       {/* Tabel */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
         {items.length === 0 ? (
-          <div className="py-14 text-center">
-            <div className="mx-auto w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center">
-              <Package className="w-6 h-6 text-gray-300" />
+          <div>
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+              <h2 className="text-sm font-bold text-gray-700">Daftar Sparepart</h2>
+              {canManage && (
+                <button
+                  onClick={() => setEditItem(null)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-skyterra-cyan to-skyterra-blue text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
+                >
+                  <Plus className="w-4 h-4" /> Tambah Barang
+                </button>
+              )}
             </div>
-            <p className="mt-4 text-sm font-semibold text-gray-700">Belum ada sparepart</p>
-            <p className="mt-1 text-sm text-gray-400 max-w-sm mx-auto">
-              {canManage
-                ? "Tambahkan barang pertama untuk mulai memantau stok suku cadang."
-                : "Data akan tampil setelah Manajer Divisi atau Super Admin menambahkan barang."}
-            </p>
-            {canManage && (
-              <button
-                onClick={() => setEditItem(null)}
-                className="mt-5 inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                <Plus className="w-4 h-4" /> Tambah Barang
-              </button>
-            )}
+            <div className="py-14 text-center">
+              <div className="mx-auto w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center">
+                <Package className="w-6 h-6 text-gray-300" />
+              </div>
+              <p className="mt-4 text-sm font-semibold text-gray-700">Belum ada sparepart</p>
+              <p className="mt-1 text-sm text-gray-400 max-w-sm mx-auto">
+                {canManage
+                  ? "Tambahkan barang pertama untuk mulai memantau stok suku cadang."
+                  : "Data akan tampil setelah Manajer Divisi atau Super Admin menambahkan barang."}
+              </p>
+            </div>
           </div>
         ) : (
           <>
@@ -472,15 +477,25 @@ export default function InventoryClient({
                 </label>
                 <span className="text-xs text-gray-400">{filtered.length} barang</span>
               </div>
-              <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 w-full lg:w-72">
-                <Search className="w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Cari nama barang..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
-                />
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 w-full sm:w-72">
+                  <Search className="w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Cari nama barang..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none w-full"
+                  />
+                </div>
+                {canManage && (
+                  <button
+                    onClick={() => setEditItem(null)}
+                    className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-skyterra-cyan to-skyterra-blue text-white rounded-xl text-xs font-semibold hover:opacity-90 transition-opacity shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" /> Tambah Barang
+                  </button>
+                )}
               </div>
             </div>
 
