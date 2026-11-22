@@ -13,6 +13,12 @@ import {
   CheckCircle2,
   Ban,
   Filter,
+  AlertTriangle,
+  ArrowRightLeft,
+  ShieldCheck,
+  Coins,
+  CheckCircle,
+  HelpCircle,
 } from "lucide-react";
 import { formatRupiah, formatTanggal } from "@/lib/utils";
 import type { Transaction } from "@/lib/mock-data";
@@ -35,6 +41,7 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
   const [simNilai, setSimNilai] = useState<string>("50000000"); // Default 50jt
   const [simPphRate, setSimPphRate] = useState<number>(2); // 2% PPh 23
   const [simPpnInclude, setSimPpnInclude] = useState<"exclude" | "include" | "none">("exclude");
+  const [simActualDisburse, setSimActualDisburse] = useState<string>(""); // Nominal riil mutasi pencairan
 
   // Filter transaksi pemasukan / pendapatan
   const now = new Date();
@@ -107,6 +114,10 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
 
   const pphNominal = Math.round(dpp * (simPphRate / 100));
   const totalTagihanKlien = simPpnInclude === "exclude" ? dpp + ppnNominal : rawSimNilai;
+  const estimasiTransferMasukKlien = totalTagihanKlien - pphNominal; // Transfer riil dari klien setelah dipotong PPh
+  const kasBersihOperasional = dpp - pphNominal; // Kas riil milik SkyTerra setelah sisih PPN
+  const totalSelisihPajak = totalTagihanKlien - kasBersihOperasional; // Total selisih pajak
+  const rawActualDisburse = Number(simActualDisburse.replace(/\D/g, "")) || 0;
 
   return (
     <div className="space-y-6">
@@ -444,7 +455,8 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
         </div>
       ) : (
         /* Tab 2: Kalkulator Simulasi Kontrak / Invoice */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Form Input Simulasi */}
           <div className="lg:col-span-5 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-5">
             <div className="flex items-center justify-between">
@@ -620,11 +632,209 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
                   </p>
                 </div>
                 <p className="text-2xl font-bold text-emerald-700">
-                  {formatRupiah(dpp - pphNominal)}
+                  {formatRupiah(kasBersihOperasional)}
                 </p>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* MODUL ANALISIS SELISIH & VALIDASI PENCAIRAN (ANTI SALAH NOMINAL) */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-6">
+          <div className="border-b border-gray-100 pb-4">
+            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <ArrowRightLeft className="w-5 h-5 text-skyterra-cyan" />
+              Analisis Selisih Nominal Pencairan & Rekonsiliasi Bank
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Gunakan modul ini untuk membedah selisih antara nilai invoice resmi, nominal transfer masuk dari klien, dan kas riil operasional agar tidak terjadi salah nominal saat pencairan kas.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Kolom Kiri: Dekomposisi Selisih Nominal */}
+            <div className="lg:col-span-6 space-y-3 bg-gray-50/70 p-4 rounded-xl border border-gray-100">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5 mb-2">
+                <Coins className="w-4 h-4 text-skyterra-cyan" />
+                Dekomposisi Selisih Transaksi Proyek
+              </h3>
+
+              <div className="flex justify-between items-center py-1.5 border-b border-gray-200/60 text-xs">
+                <span className="text-gray-600">1. Nilai Resmi Invoice Klien:</span>
+                <span className="font-bold text-gray-900">{formatRupiah(totalTagihanKlien)}</span>
+              </div>
+
+              <div className="flex justify-between items-center py-1.5 border-b border-gray-200/60 text-xs">
+                <span className="text-amber-700 font-medium">2. (-) Selisih Potongan PPh 23 ({simPphRate}%):</span>
+                <span className="font-semibold text-amber-700">
+                  {simPphRate === 0 ? "Rp 0" : `-${formatRupiah(pphNominal)}`}
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-500 italic pl-3 -mt-1">
+                *Dipungut langsung oleh klien. Wajib minta Bukti Potong PPh 23 sebagai kredit pajak tahunan.
+              </p>
+
+              <div className="flex justify-between items-center py-2 bg-blue-50/70 px-3 rounded-lg border border-blue-100 text-xs">
+                <span className="font-bold text-blue-900">Ekspektasi Transfer Masuk Klien:</span>
+                <span className="font-bold text-blue-900 text-sm">{formatRupiah(estimasiTransferMasukKlien)}</span>
+              </div>
+
+              <div className="flex justify-between items-center py-1.5 border-b border-gray-200/60 text-xs">
+                <span className="text-gray-600">3. (-) Selisih Titipan PPN 11%:</span>
+                <span className="font-semibold text-gray-600">
+                  {simPpnInclude === "none" ? "Rp 0" : `-${formatRupiah(ppnNominal)}`}
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-500 italic pl-3 -mt-1">
+                *Bukan pendapatan perusahaan. Disetor ke kas negara via Faktur Pajak Keluaran.
+              </p>
+
+              <div className="flex justify-between items-center py-2 bg-emerald-50 px-3 rounded-lg border border-emerald-100 text-xs mt-2">
+                <span className="font-bold text-emerald-900">Uang Kas Bersih Operasional SkyTerra:</span>
+                <span className="font-bold text-emerald-800 text-sm">{formatRupiah(kasBersihOperasional)}</span>
+              </div>
+
+              <div className="flex justify-between items-center pt-2 text-xs font-semibold text-gray-500">
+                <span>Total Selisih Perpajakan:</span>
+                <span className="text-red-600 font-bold">{formatRupiah(totalSelisihPajak)}</span>
+              </div>
+            </div>
+
+            {/* Kolom Kanan: Alat Uji Validasi Mutasi Pencairan Rekening */}
+            <div className="lg:col-span-6 space-y-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                Uji Validasi Mutasi Rekening Bank (Anti Salah Nominal)
+              </h3>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Nominal yang Tertera di Mutasi Bank / Rekening Koran (Rp):
+                </label>
+                <input
+                  type="text"
+                  value={rawActualDisburse > 0 ? new Intl.NumberFormat("id-ID").format(rawActualDisburse) : simActualDisburse}
+                  onChange={(e) => setSimActualDisburse(e.target.value.replace(/\D/g, ""))}
+                  placeholder="Ketik nominal transfer yang masuk ke bank..."
+                  className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-skyterra-cyan/30 focus:border-skyterra-cyan"
+                />
+              </div>
+
+              {/* Tombol Cepat Uji Coba */}
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="text-gray-400 self-center">Tes Cepat:</span>
+                <button
+                  type="button"
+                  onClick={() => setSimActualDisburse(String(estimasiTransferMasukKlien))}
+                  className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors font-medium text-[11px]"
+                >
+                  Transfer Klien ({formatRupiah(estimasiTransferMasukKlien)})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSimActualDisburse(String(totalTagihanKlien))}
+                  className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 transition-colors font-medium text-[11px]"
+                >
+                  Full Invoice ({formatRupiah(totalTagihanKlien)})
+                </button>
+                {rawActualDisburse > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSimActualDisburse("")}
+                    className="px-2 py-1 text-gray-400 hover:text-gray-600 text-[11px]"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+
+              {/* Status Validasi Real-time */}
+              {rawActualDisburse > 0 ? (
+                (() => {
+                  if (rawActualDisburse === estimasiTransferMasukKlien) {
+                    return (
+                      <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-xs space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-emerald-800 text-sm">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                          STATUS: NOMINAL SESUAI (Pencairan Netto Klien)
+                        </div>
+                        <p className="text-emerald-700">
+                          Nominal di rekening bank <strong>100% akurat</strong> dengan Invoice Klien setelah dipotong PPh {simPphRate}%. Tidak ada selisih nominal mencurigakan.
+                        </p>
+                        {pphNominal > 0 && (
+                          <div className="mt-2 pt-2 border-t border-emerald-200/70 text-[11px] text-emerald-800 font-medium">
+                            📌 Tindakan Lanjutan: Minta formulir <strong>Bukti Potong PPh 23</strong> senilai <strong>{formatRupiah(pphNominal)}</strong> dari pihak klien.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  if (rawActualDisburse === totalTagihanKlien) {
+                    return (
+                      <div className="p-4 rounded-xl border border-blue-200 bg-blue-50 text-blue-900 text-xs space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-blue-800 text-sm">
+                          <CheckCircle className="w-5 h-5 text-blue-600 shrink-0" />
+                          STATUS: NOMINAL FULL INVOICE (Transfer Bruto)
+                        </div>
+                        <p className="text-blue-700">
+                          Klien mentransfer 100% nilai invoice tanpa memotong PPh 23. Periksa apakah klien merupakan instansi non-pemotong atau perusahaan harus menyetorkan sendiri pajaknya.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  if (rawActualDisburse === kasBersihOperasional && ppnNominal > 0) {
+                    return (
+                      <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs space-y-1.5">
+                        <div className="flex items-center gap-2 font-bold text-amber-800 text-sm">
+                          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                          STATUS: PENCAIRAN DPP SAJA (PPN Belum Ditransfer)
+                        </div>
+                        <p className="text-amber-700">
+                          Nominal yang masuk hanya senilai DPP bersih. Uang PPN 11% sebesar <strong>{formatRupiah(ppnNominal)}</strong> belum dibayarkan oleh klien.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  // Jika ada selisih
+                  const selisihDariKlien = rawActualDisburse - estimasiTransferMasukKlien;
+                  const isKurang = selisihDariKlien < 0;
+
+                  return (
+                    <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-900 text-xs space-y-2">
+                      <div className="flex items-center gap-2 font-bold text-red-800 text-sm">
+                        <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+                        PERINGATAN: DITEMUKAN SELISIH NOMINAL PENCAIRAN!
+                      </div>
+                      <div className="bg-white/80 p-2.5 rounded-lg border border-red-100 flex justify-between items-center text-xs">
+                        <span className="font-semibold text-gray-700">Selisih dari Ekspektasi Transfer:</span>
+                        <span className="font-bold text-red-600 text-sm">
+                          {isKurang ? `-${formatRupiah(Math.abs(selisihDariKlien))}` : `+${formatRupiah(selisihDariKlien)}`}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-gray-700 space-y-1">
+                        <p className="font-semibold text-red-950">Kemungkinan Faktor Penyebab Selisih:</p>
+                        <ul className="list-disc pl-4 space-y-0.5 text-gray-600">
+                          <li><strong>Biaya Admin Bank:</strong> Potongan transfer antar bank (BI-FAST Rp 2.500 atau RTGS Rp 25.000 s/d Rp 35.000).</li>
+                          <li><strong>Retensi Garansi Proyek:</strong> Klien menahan 5% s/d 10% nilai kontrak sebagai jaminan masa pemeliharaan hasil survei.</li>
+                          <li><strong>Pembulatan Pajak:</strong> Beda desimal pada faktur pajak klien.</li>
+                          <li><strong>Salah Input Nominal:</strong> Kesalahan ketik nominal pada saat transfer bank oleh finance klien.</li>
+                        </ul>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className="p-4 rounded-xl border border-dashed border-gray-200 text-center text-xs text-gray-400">
+                  <HelpCircle className="w-5 h-5 mx-auto mb-1 text-gray-300" />
+                  Masukkan nominal mutasi bank di atas untuk memverifikasi apakah ada selisih pencairan.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
         </div>
       )}
     </div>
