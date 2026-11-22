@@ -37,7 +37,7 @@ const USERS: StoredUser[] = [
     name: "Dimas Wicaksono",
     email: "manajer@skyterra.co.id",
     role: "manajer_divisi",
-    division: "Divisi Survei Udara (Drone)",
+    division: "Divisi Technical",
     passwordHash: "2a492f53be2e468cc10070dab6dd19bb37b764f634b0ae96830bce66b91f988f", // Manajer#2026
   },
   {
@@ -45,7 +45,7 @@ const USERS: StoredUser[] = [
     name: "Ahmad Fauzi",
     email: "viewer@skyterra.co.id",
     role: "viewer",
-    division: "Divisi Pemetaan Terestrial",
+    division: "Divisi Finance",
     passwordHash: "52b588d5ac6e81abd20bf926a5a7a63abfb6053a7e00ec36487dcb25bce1c0aa", // Viewer#2026
   },
 ];

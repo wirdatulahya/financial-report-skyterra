@@ -6,9 +6,9 @@
 
 // --- Divisi ---
 export const divisions = [
-  { id: "div-001", name: "Divisi Survei Udara (Drone)" },
-  { id: "div-002", name: "Divisi Pemetaan Terestrial" },
-  { id: "div-003", name: "Divisi Operasional & Umum" },
+  { id: "div-001", name: "Divisi Technical" },
+  { id: "div-002", name: "Divisi Finance" },
+  { id: "div-003", name: "Divisi Marketing" },
 ];
 
 // --- Kategori Transaksi ---
