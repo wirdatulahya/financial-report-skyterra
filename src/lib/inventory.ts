@@ -79,12 +79,152 @@ export function validateSparepart(
 // ------------------------------------------------------------
 // Penyimpanan (memori server)
 // ------------------------------------------------------------
+export const DEFAULT_PARTS: Sparepart[] = [
+  {
+    id: "part-001",
+    name: "Propeller CCW/CW Matrice 300 RTK (2110)",
+    category: "Drone & UAV",
+    stock: 2, // Low stock: < minStock 6
+    minStock: 6,
+    price: 850000,
+    updatedAt: "2026-11-20T08:30:00Z",
+  },
+  {
+    id: "part-002",
+    name: "Baterai Intelligent TB60 5935mAh (DJI M300)",
+    category: "Baterai & Daya",
+    stock: 8,
+    minStock: 4,
+    price: 9500000,
+    updatedAt: "2026-11-19T10:15:00Z",
+  },
+  {
+    id: "part-003",
+    name: "Prisma Target Circular Leica GPR1 + Holder",
+    category: "Total Station",
+    stock: 3, // Low stock: < minStock 5
+    minStock: 5,
+    price: 3200000,
+    updatedAt: "2026-11-18T14:20:00Z",
+  },
+  {
+    id: "part-004",
+    name: "Tribrach Optical Plummet Leica GDF321",
+    category: "Total Station",
+    stock: 6,
+    minStock: 3,
+    price: 4500000,
+    updatedAt: "2026-11-15T09:00:00Z",
+  },
+  {
+    id: "part-005",
+    name: "Antenna GNSS Helical Multi-Band Emlid",
+    category: "GNSS / GPS",
+    stock: 5,
+    minStock: 2,
+    price: 2750000,
+    updatedAt: "2026-11-12T11:45:00Z",
+  },
+  {
+    id: "part-006",
+    name: "Kabel Data Lemo 7-pin to USB Trimble/Leica",
+    category: "Aksesori",
+    stock: 12,
+    minStock: 4,
+    price: 650000,
+    updatedAt: "2026-11-10T13:30:00Z",
+  },
+  {
+    id: "part-007",
+    name: "LiDAR Protective Lens Cover Livox Avia",
+    category: "LiDAR & Sensor",
+    stock: 1, // Low stock: < minStock 3
+    minStock: 3,
+    price: 4200000,
+    updatedAt: "2026-11-08T15:10:00Z",
+  },
+  {
+    id: "part-008",
+    name: "Baterai Li-ion Total Station Topcon BT-52QA",
+    category: "Baterai & Daya",
+    stock: 7,
+    minStock: 3,
+    price: 1850000,
+    updatedAt: "2026-11-05T09:20:00Z",
+  },
+  {
+    id: "part-009",
+    name: "Tripod Alumunium Heavy Duty Wild Leica",
+    category: "Total Station",
+    stock: 10,
+    minStock: 4,
+    price: 2100000,
+    updatedAt: "2026-11-02T16:00:00Z",
+  },
+  {
+    id: "part-010",
+    name: "MicroSD Extreme Pro 128GB V30 A2 SanDisk",
+    category: "Aksesori",
+    stock: 15,
+    minStock: 5,
+    price: 380000,
+    updatedAt: "2026-10-28T10:00:00Z",
+  },
+];
+
+export const DEFAULT_MOVES: StockMovement[] = [
+  {
+    id: "move-001",
+    itemId: "part-001",
+    itemName: "Propeller CCW/CW Matrice 300 RTK (2110)",
+    type: "out",
+    qty: 4,
+    stockAfter: 2,
+    note: "Penggantian rutin baling-baling proyek LiDAR Tol Trans Jawa",
+    by: "Wirdatul Ahya",
+    at: "2026-11-20T08:30:00Z",
+  },
+  {
+    id: "move-002",
+    itemId: "part-002",
+    itemName: "Baterai Intelligent TB60 5935mAh (DJI M300)",
+    type: "in",
+    qty: 4,
+    stockAfter: 8,
+    note: "Penerimaan pengadaan baterai baru vendor DJI Surabaya",
+    by: "Mochamad Zhielton Akbar",
+    at: "2026-11-19T10:15:00Z",
+  },
+  {
+    id: "move-003",
+    itemId: "part-003",
+    itemName: "Prisma Target Circular Leica GPR1 + Holder",
+    type: "out",
+    qty: 2,
+    stockAfter: 3,
+    note: "Dipinjam tim lapangan survei topografi tambang Morowali",
+    by: "Tiko Rizki Ramadhani",
+    at: "2026-11-18T14:20:00Z",
+  },
+  {
+    id: "move-004",
+    itemId: "part-007",
+    itemName: "LiDAR Protective Lens Cover Livox Avia",
+    type: "out",
+    qty: 2,
+    stockAfter: 1,
+    note: "Penggantian lensa lecet akibat serpihan debu koridor tambang",
+    by: "Fazla Dwika Simahate",
+    at: "2026-11-08T15:10:00Z",
+  },
+];
+
 const store = globalThis as unknown as {
   __skyterraParts?: Sparepart[];
   __skyterraMoves?: StockMovement[];
 };
-const items = (store.__skyterraParts ??= []);
-const moves = (store.__skyterraMoves ??= []);
+const items = (store.__skyterraParts ??= [...DEFAULT_PARTS]);
+const moves = (store.__skyterraMoves ??= [...DEFAULT_MOVES]);
 const MAX_MOVES_KEPT = 500;
 
 const now = () => new Date().toISOString();
