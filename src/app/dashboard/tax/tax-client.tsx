@@ -10,6 +10,9 @@ import {
   FileSpreadsheet,
   ArrowRight,
   RotateCcw,
+  CheckCircle2,
+  Ban,
+  Filter,
 } from "lucide-react";
 import { formatRupiah, formatTanggal } from "@/lib/utils";
 import type { Transaction } from "@/lib/mock-data";
@@ -23,6 +26,10 @@ interface TaxClientProps {
 export default function TaxClient({ transactions, user }: TaxClientProps) {
   const [activeTab, setActiveTab] = useState<"rekap" | "simulasi">("rekap");
   const [periodFilter, setPeriodFilter] = useState<"all" | "this_month" | "this_year">("all");
+  const [taxFilter, setTaxFilter] = useState<"all" | "taxable" | "exempt">("all");
+
+  // State untuk menandai transaksi mana saja yang dibebaskan dari pajak
+  const [exemptIds, setExemptIds] = useState<Set<string>>(new Set());
 
   // State untuk Kalkulator Simulasi Invoice
   const [simNilai, setSimNilai] = useState<string>("50000000"); // Default 50jt
@@ -41,12 +48,48 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
     return true;
   });
 
+  const toggleExempt = (id: string) => {
+    setExemptIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const markAllExempt = () => {
+    setExemptIds(new Set(incomeTransactions.map((t) => t.id)));
+  };
+
+  const markAllTaxable = () => {
+    setExemptIds(new Set());
+  };
+
+  // Filter tampilan tabel berdasarkan status pajak
+  const displayedTransactions = incomeTransactions.filter((t) => {
+    const isExempt = exemptIds.has(t.id);
+    if (taxFilter === "taxable") return !isExempt;
+    if (taxFilter === "exempt") return isExempt;
+    return true;
+  });
+
   // Kalkulasi rekapitulasi pajak dari data riil transaksi
-  const totalPendapatanProyek = incomeTransactions.reduce((acc, curr) => acc + curr.amount, 0);
-  const estimasiPph23 = Math.round(totalPendapatanProyek * 0.02); // 2% PPh 23 Jasa Survei
-  const estimasiPpn = Math.round(totalPendapatanProyek * 0.11); // 11% PPN
+  const totalSemuaPemasukan = incomeTransactions.reduce((acc, curr) => acc + curr.amount, 0);
+
+  // Transaksi yang kena pajak vs bebas pajak
+  const taxableTransactions = incomeTransactions.filter((t) => !exemptIds.has(t.id));
+  const exemptTransactions = incomeTransactions.filter((t) => exemptIds.has(t.id));
+
+  const totalDppKenaPajak = taxableTransactions.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalBebasPajak = exemptTransactions.reduce((acc, curr) => acc + curr.amount, 0);
+
+  const estimasiPph23 = Math.round(totalDppKenaPajak * 0.02); // 2% PPh 23
+  const estimasiPpn = Math.round(totalDppKenaPajak * 0.11); // 11% PPN
   const totalBebanPajak = estimasiPph23 + estimasiPpn;
-  const kasBersihSetelahPajak = totalPendapatanProyek - estimasiPph23; // PPh memotong kas masuk
+  const kasBersihSetelahPajak = totalSemuaPemasukan - estimasiPph23; // PPh memotong kas masuk
 
   // Perhitungan Simulasi Invoice
   const rawSimNilai = Number(simNilai.replace(/\D/g, "")) || 0;
@@ -64,7 +107,6 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
 
   const pphNominal = Math.round(dpp * (simPphRate / 100));
   const totalTagihanKlien = simPpnInclude === "exclude" ? dpp + ppnNominal : rawSimNilai;
-  const kasBersihDiterima = totalTagihanKlien - ppnNominal - pphNominal; // Kas riil setelah setor PPN & dipotong PPh
 
   return (
     <div className="space-y-6">
@@ -72,7 +114,7 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Kalkulator & Estimasi Perpajakan</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Estimasi beban PPh 23 (Jasa Geospasial/Survei) dan PPN 11% PT SkyTerra Nusantara.
+          Estimasi beban PPh 23 (Jasa Geospasial/Survei), PPN 11%, serta opsi penanganan proyek Bebas Pajak.
         </p>
       </div>
 
@@ -104,42 +146,93 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
 
       {activeTab === "rekap" ? (
         <div className="space-y-6">
-          {/* Filter Periode */}
-          <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Periode Rekapitulasi:
-              </span>
-              <div className="flex bg-gray-100 p-0.5 rounded-lg text-xs font-semibold">
-                <button
-                  onClick={() => setPeriodFilter("all")}
-                  className={`px-3 py-1.5 rounded-md transition-all ${
-                    periodFilter === "all" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Semua Waktu
-                </button>
-                <button
-                  onClick={() => setPeriodFilter("this_month")}
-                  className={`px-3 py-1.5 rounded-md transition-all ${
-                    periodFilter === "this_month" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Bulan Ini
-                </button>
-                <button
-                  onClick={() => setPeriodFilter("this_year")}
-                  className={`px-3 py-1.5 rounded-md transition-all ${
-                    periodFilter === "this_year" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Tahun Ini
-                </button>
+          {/* Filter Periode & Status Pajak */}
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Filter Waktu */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Periode:
+                </span>
+                <div className="flex bg-gray-100 p-0.5 rounded-lg text-xs font-semibold">
+                  <button
+                    onClick={() => setPeriodFilter("all")}
+                    className={`px-3 py-1.5 rounded-md transition-all ${
+                      periodFilter === "all" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Semua Waktu
+                  </button>
+                  <button
+                    onClick={() => setPeriodFilter("this_month")}
+                    className={`px-3 py-1.5 rounded-md transition-all ${
+                      periodFilter === "this_month" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Bulan Ini
+                  </button>
+                  <button
+                    onClick={() => setPeriodFilter("this_year")}
+                    className={`px-3 py-1.5 rounded-md transition-all ${
+                      periodFilter === "this_year" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Tahun Ini
+                  </button>
+                </div>
+              </div>
+
+              {/* Filter Status Pajak */}
+              <div className="flex items-center gap-2 border-l border-gray-200 pl-3">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Status:
+                </span>
+                <div className="flex bg-gray-100 p-0.5 rounded-lg text-xs font-semibold">
+                  <button
+                    onClick={() => setTaxFilter("all")}
+                    className={`px-3 py-1.5 rounded-md transition-all ${
+                      taxFilter === "all" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Semua ({incomeTransactions.length})
+                  </button>
+                  <button
+                    onClick={() => setTaxFilter("taxable")}
+                    className={`px-3 py-1.5 rounded-md transition-all ${
+                      taxFilter === "taxable" ? "bg-white text-emerald-700 shadow-sm" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Kena Pajak ({taxableTransactions.length})
+                  </button>
+                  <button
+                    onClick={() => setTaxFilter("exempt")}
+                    className={`px-3 py-1.5 rounded-md transition-all ${
+                      taxFilter === "exempt" ? "bg-white text-gray-800 shadow-sm" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Bebas Pajak ({exemptTransactions.length})
+                  </button>
+                </div>
               </div>
             </div>
-            <p className="text-xs text-gray-400">
-              Menampilkan {incomeTransactions.length} transaksi pendapatan proyek kena pajak
-            </p>
+
+            {/* Quick Toggle Buttons */}
+            <div className="flex items-center gap-2 text-xs">
+              <button
+                onClick={markAllExempt}
+                className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold transition-colors"
+                title="Tandai semua transaksi sebagai proyek bebas pajak"
+              >
+                Set Semua Bebas Pajak
+              </button>
+              <button
+                onClick={markAllTaxable}
+                className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold transition-colors"
+                title="Kembalikan semua transaksi ke status kena pajak"
+              >
+                Set Semua Kena Pajak
+              </button>
+            </div>
           </div>
 
           {/* KPI Cards Perpajakan */}
@@ -148,12 +241,14 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Total Dasar Pengenaan Pajak (DPP)
+                    Dasar Pengenaan Pajak (DPP)
                   </p>
                   <p className="text-xl font-bold text-gray-900 mt-2">
-                    {formatRupiah(totalPendapatanProyek)}
+                    {formatRupiah(totalDppKenaPajak)}
                   </p>
-                  <p className="text-[11px] text-gray-400 mt-1">Akumulasi pendapatan proyek</p>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    {taxableTransactions.length} proyek kena pajak ({formatRupiah(totalBebasPajak)} bebas pajak)
+                  </p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-skyterra-cyan/10 flex items-center justify-center">
                   <Receipt className="w-5 h-5 text-skyterra-cyan" />
@@ -170,7 +265,9 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
                   <p className="text-xl font-bold text-amber-600 mt-2">
                     {formatRupiah(estimasiPph23)}
                   </p>
-                  <p className="text-[11px] text-gray-400 mt-1">Dipotong pihak pengguna jasa</p>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    {estimasiPph23 === 0 ? "Tidak ada potongan PPh" : "Dipotong pengguna jasa"}
+                  </p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
                   <Percent className="w-5 h-5 text-amber-600" />
@@ -187,7 +284,9 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
                   <p className="text-xl font-bold text-blue-600 mt-2">
                     {formatRupiah(estimasiPpn)}
                   </p>
-                  <p className="text-[11px] text-gray-400 mt-1">Kewajiban PPN keluaran</p>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    {estimasiPpn === 0 ? "Bebas kewajiban PPN" : "PPN keluaran disetor"}
+                  </p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
                   <Scale className="w-5 h-5 text-blue-600" />
@@ -199,38 +298,42 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Total Estimasi Beban
+                    Total Kas Bersih Riil
                   </p>
-                  <p className="text-xl font-bold text-rose-600 mt-2">
-                    {formatRupiah(totalBebanPajak)}
+                  <p className="text-xl font-bold text-emerald-600 mt-2">
+                    {formatRupiah(kasBersihSetelahPajak)}
                   </p>
-                  <p className="text-[11px] text-gray-400 mt-1">PPh 23 + PPN 11%</p>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Total pendapatan - potongan PPh
+                  </p>
                 </div>
-                <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center">
-                  <Calculator className="w-5 h-5 text-rose-600" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Rincian Transaksi Kena Pajak */}
+          {/* Rincian Transaksi Kena Pajak & Bebas Pajak */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-gray-800">
-                Rincian Transaksi Pendapatan Proyek Kena Pajak
-              </h2>
+              <div>
+                <h2 className="text-sm font-bold text-gray-800">
+                  Rincian Transaksi Pendapatan Proyek
+                </h2>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Klik tombol status pada tabel untuk mengubah antara <strong>Kena Pajak</strong> atau <strong>Bebas Pajak (0%)</strong>.
+                </p>
+              </div>
               <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
-                Tarif Acuan: PPh 23 (2%) & PPN (11%)
+                Tarif Default: PPh 23 (2%) & PPN (11%)
               </span>
             </div>
 
-            {incomeTransactions.length === 0 ? (
+            {displayedTransactions.length === 0 ? (
               <div className="text-center py-10 text-gray-400">
                 <FileSpreadsheet className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-                <p className="text-sm font-semibold">Belum ada transaksi pendapatan pada periode ini.</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Transaksi bertipe pemasukan yang dicatat di menu Arus Kas akan otomatis dikalkulasi di sini.
-                </p>
+                <p className="text-sm font-semibold">Tidak ada transaksi yang cocok dengan filter.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -240,17 +343,20 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
                       <th className="text-left py-3 px-3 font-semibold">Tanggal</th>
                       <th className="text-left py-3 px-3 font-semibold">Deskripsi Proyek</th>
                       <th className="text-left py-3 px-3 font-semibold">Divisi</th>
-                      <th className="text-right py-3 px-3 font-semibold">Nilai Kontrak (DPP)</th>
+                      <th className="text-center py-3 px-3 font-semibold">Status Pajak</th>
+                      <th className="text-right py-3 px-3 font-semibold">Nilai Proyek</th>
                       <th className="text-right py-3 px-3 font-semibold">Est. PPh 23 (2%)</th>
                       <th className="text-right py-3 px-3 font-semibold">Est. PPN (11%)</th>
                       <th className="text-right py-3 px-3 font-semibold">Kas Bersih</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {incomeTransactions.map((t) => {
-                      const pph = Math.round(t.amount * 0.02);
-                      const ppn = Math.round(t.amount * 0.11);
+                    {displayedTransactions.map((t) => {
+                      const isExempt = exemptIds.has(t.id);
+                      const pph = isExempt ? 0 : Math.round(t.amount * 0.02);
+                      const ppn = isExempt ? 0 : Math.round(t.amount * 0.11);
                       const net = t.amount - pph;
+
                       return (
                         <tr key={t.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                           <td className="py-3 px-3 text-gray-500 whitespace-nowrap text-xs">
@@ -262,14 +368,35 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
                           <td className="py-3 px-3 text-gray-500 text-xs whitespace-nowrap">
                             {t.division}
                           </td>
+                          <td className="py-3 px-3 text-center whitespace-nowrap">
+                            <button
+                              onClick={() => toggleExempt(t.id)}
+                              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                                isExempt
+                                  ? "bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200"
+                                  : "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                              }`}
+                              title="Klik untuk ubah status pajak"
+                            >
+                              {isExempt ? "Bebas Pajak (0%)" : "Kena Pajak"}
+                            </button>
+                          </td>
                           <td className="py-3 px-3 text-right font-semibold text-gray-900 whitespace-nowrap">
                             {formatRupiah(t.amount)}
                           </td>
-                          <td className="py-3 px-3 text-right text-amber-600 font-medium whitespace-nowrap">
-                            -{formatRupiah(pph)}
+                          <td className="py-3 px-3 text-right whitespace-nowrap font-medium">
+                            {isExempt ? (
+                              <span className="text-gray-400">Rp 0</span>
+                            ) : (
+                              <span className="text-amber-600">-{formatRupiah(pph)}</span>
+                            )}
                           </td>
-                          <td className="py-3 px-3 text-right text-blue-600 font-medium whitespace-nowrap">
-                            +{formatRupiah(ppn)}
+                          <td className="py-3 px-3 text-right whitespace-nowrap font-medium">
+                            {isExempt ? (
+                              <span className="text-gray-400">Rp 0</span>
+                            ) : (
+                              <span className="text-blue-600">+{formatRupiah(ppn)}</span>
+                            )}
                           </td>
                           <td className="py-3 px-3 text-right font-bold text-emerald-600 whitespace-nowrap">
                             {formatRupiah(net)}
@@ -280,11 +407,34 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
                   </tbody>
                   <tfoot>
                     <tr className="bg-gray-50/70 font-bold text-gray-900 text-xs">
-                      <td colSpan={3} className="py-3 px-3">TOTAL REKAPITULASI</td>
-                      <td className="py-3 px-3 text-right">{formatRupiah(totalPendapatanProyek)}</td>
-                      <td className="py-3 px-3 text-right text-amber-600">-{formatRupiah(estimasiPph23)}</td>
-                      <td className="py-3 px-3 text-right text-blue-600">+{formatRupiah(estimasiPpn)}</td>
-                      <td className="py-3 px-3 text-right text-emerald-600">{formatRupiah(kasBersihSetelahPajak)}</td>
+                      <td colSpan={4} className="py-3 px-3">
+                        TOTAL REKAPITULASI ({displayedTransactions.length} Transaksi)
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        {formatRupiah(displayedTransactions.reduce((s, t) => s + t.amount, 0))}
+                      </td>
+                      <td className="py-3 px-3 text-right text-amber-600">
+                        -{formatRupiah(
+                          displayedTransactions
+                            .filter((t) => !exemptIds.has(t.id))
+                            .reduce((s, t) => s + Math.round(t.amount * 0.02), 0)
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-right text-blue-600">
+                        +{formatRupiah(
+                          displayedTransactions
+                            .filter((t) => !exemptIds.has(t.id))
+                            .reduce((s, t) => s + Math.round(t.amount * 0.11), 0)
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-right text-emerald-600">
+                        {formatRupiah(
+                          displayedTransactions.reduce((s, t) => {
+                            const pph = exemptIds.has(t.id) ? 0 : Math.round(t.amount * 0.02);
+                            return s + (t.amount - pph);
+                          }, 0)
+                        )}
+                      </td>
                     </tr>
                   </tfoot>
                 </table>
@@ -297,10 +447,25 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Form Input Simulasi */}
           <div className="lg:col-span-5 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-5">
-            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-skyterra-cyan" />
-              Parameter Kontrak Proyek
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Calculator className="w-5 h-5 text-skyterra-cyan" />
+                Parameter Kontrak Proyek
+              </h2>
+              {/* Tombol Cepat Bebas Pajak */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSimPphRate(0);
+                  setSimPpnInclude("none");
+                }}
+                className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
+                title="Atur PPh ke 0% dan PPN ke Non-PPN"
+              >
+                <Ban className="w-3 h-3" />
+                Set Bebas Pajak
+              </button>
+            </div>
 
             {/* Input Nilai Kontrak */}
             <div>
@@ -329,7 +494,7 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
                 <option value={2}>PPh 23 — Jasa Survei & Pemetaan Geospasial (2.0%)</option>
                 <option value={1.75}>PPh Final 4(2) — Perencanaan/Konsultansi Konstruksi (1.75%)</option>
                 <option value={2.65}>PPh Final 4(2) — Pengawasan Konstruksi (2.65%)</option>
-                <option value={0}>Bebas Potong PPh (0%)</option>
+                <option value={0}>Bebas Potong PPh (0%) — Tanpa Pajak</option>
               </select>
             </div>
 
@@ -366,11 +531,11 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
                   onClick={() => setSimPpnInclude("none")}
                   className={`py-2 px-3 text-xs font-semibold rounded-xl border transition-all ${
                     simPpnInclude === "none"
-                      ? "border-skyterra-cyan bg-skyterra-cyan/10 text-skyterra-cyan"
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-700 font-bold"
                       : "border-gray-200 text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  Non-PPN
+                  Non-PPN (0%)
                 </button>
               </div>
             </div>
@@ -386,7 +551,7 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
               className="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-1.5 pt-2"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              Kembalikan ke Nilai Awal
+              Kembalikan ke Tarif Default (PPh 2% & PPN 11%)
             </button>
           </div>
 
@@ -396,6 +561,11 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
               <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <Receipt className="w-5 h-5 text-emerald-600" />
                 Rincian Tagihan & Hasil Bersih
+                {simPphRate === 0 && simPpnInclude === "none" && (
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full ml-auto">
+                    Mode Bebas Pajak
+                  </span>
+                )}
               </h2>
 
               <div className="space-y-3">
@@ -405,8 +575,12 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
                 </div>
 
                 <div className="flex justify-between items-center py-2 border-b border-gray-100 text-sm">
-                  <span className="text-blue-600">PPN 11% (Ditagihkan ke Klien):</span>
-                  <span className="font-semibold text-blue-600">+{formatRupiah(ppnNominal)}</span>
+                  <span className={simPpnInclude === "none" ? "text-gray-400" : "text-blue-600"}>
+                    PPN {simPpnInclude === "none" ? "0%" : "11%"} (Ditagihkan ke Klien):
+                  </span>
+                  <span className={`font-semibold ${simPpnInclude === "none" ? "text-gray-400" : "text-blue-600"}`}>
+                    {simPpnInclude === "none" ? "Rp 0" : `+${formatRupiah(ppnNominal)}`}
+                  </span>
                 </div>
 
                 <div className="flex justify-between items-center py-2 border-b border-gray-100 text-sm bg-gray-50 px-3 rounded-lg">
@@ -415,15 +589,19 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
                 </div>
 
                 <div className="flex justify-between items-center py-2 border-b border-gray-100 text-sm">
-                  <span className="text-amber-600">
+                  <span className={simPphRate === 0 ? "text-gray-400" : "text-amber-600"}>
                     Potongan PPh {simPphRate}% (Dipotong oleh Klien):
                   </span>
-                  <span className="font-semibold text-amber-600">-{formatRupiah(pphNominal)}</span>
+                  <span className={`font-semibold ${simPphRate === 0 ? "text-gray-400" : "text-amber-600"}`}>
+                    {simPphRate === 0 ? "Rp 0" : `-${formatRupiah(pphNominal)}`}
+                  </span>
                 </div>
 
                 <div className="flex justify-between items-center py-2 border-b border-gray-100 text-sm">
                   <span className="text-gray-500">Estimasi PPN Disetor ke Kas Negara:</span>
-                  <span className="font-medium text-gray-500">-{formatRupiah(ppnNominal)}</span>
+                  <span className="font-medium text-gray-500">
+                    {simPpnInclude === "none" ? "Rp 0" : `-${formatRupiah(ppnNominal)}`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -436,7 +614,9 @@ export default function TaxClient({ transactions, user }: TaxClientProps) {
                     Estimasi Kas Bersih Diterima Perusahaan
                   </p>
                   <p className="text-xs text-emerald-600 mt-0.5">
-                    DPP setelah dipotong PPh (uang riil operasional SkyTerra)
+                    {simPphRate === 0 && simPpnInclude === "none"
+                      ? "100% Nilai Kontrak diterima penuh tanpa potongan pajak"
+                      : "DPP setelah dipotong PPh (uang riil operasional SkyTerra)"}
                   </p>
                 </div>
                 <p className="text-2xl font-bold text-emerald-700">
