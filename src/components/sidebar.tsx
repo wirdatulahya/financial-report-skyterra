@@ -47,13 +47,11 @@ const menuItems = [
       {
         name: "Kalkulator Pajak",
         href: "/dashboard/tax",
-        soon: true,
         icon: Calculator,
       },
       {
         name: "Laporan PDF",
         href: "/dashboard/reports",
-        soon: true,
         icon: FileText,
       },
     ],
