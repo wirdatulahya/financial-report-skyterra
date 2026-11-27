@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowDownRight, ArrowUpRight, Building2, FileSpreadsheet, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, Building2, FileSpreadsheet, Package, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { formatRupiah } from "@/lib/utils";
 import { divisions } from "@/lib/mock-data";
 import { getCurrentUser } from "@/lib/session";
+import { isLowStock, listSpareparts } from "@/lib/inventory";
 import { listTransactions } from "@/lib/transactions";
 import CashflowChart from "./cashflow-chart";
 
@@ -61,6 +62,11 @@ export default async function DashboardPage() {
 
   const recent = trx.slice(0, 5);
   const isEmpty = trx.length === 0;
+
+  const spareparts = listSpareparts();
+  const totalStockUnits = spareparts.reduce((s, p) => s + p.stock, 0);
+  const inventoryValue = spareparts.reduce((s, p) => s + p.stock * p.price, 0);
+  const lowStockParts = spareparts.filter(isLowStock);
 
   return (
     <div className="space-y-6">
@@ -215,6 +221,51 @@ export default async function DashboardPage() {
             </table>
           </div>
         )}
+      </div>
+
+      {/* Ringkasan Inventaris Sparepart */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Package className="w-4 h-4 text-skyterra-cyan" />
+            <h2 className="text-sm font-bold text-gray-700">Status Inventaris Sparepart</h2>
+          </div>
+          <Link href="/dashboard/sparepart" className="text-xs font-semibold text-skyterra-cyan hover:underline">
+            Kelola Sparepart →
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+            <p className="text-xs text-gray-500">Jenis Barang</p>
+            <p className="text-xl font-bold text-gray-900 mt-1">{spareparts.length} item</p>
+          </div>
+          <div className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+            <p className="text-xs text-gray-500">Total Stok & Nilai Persediaan</p>
+            <p className="text-xl font-bold text-gray-900 mt-1">
+              {totalStockUnits} unit · {formatRupiah(inventoryValue)}
+            </p>
+          </div>
+          <div
+            className={`p-4 rounded-xl border ${
+              lowStockParts.length > 0
+                ? "bg-amber-50/70 border-amber-200"
+                : "bg-emerald-50/60 border-emerald-200"
+            }`}
+          >
+            <p className="text-xs font-semibold flex items-center gap-1.5 text-gray-700">
+              {lowStockParts.length > 0 && <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />}
+              Peringatan Stok Menipis
+            </p>
+            <p
+              className={`text-xl font-bold mt-1 ${
+                lowStockParts.length > 0 ? "text-amber-700" : "text-emerald-700"
+              }`}
+            >
+              {lowStockParts.length > 0 ? `${lowStockParts.length} barang perlu restok` : "Semua stok aman"}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

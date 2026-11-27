@@ -139,16 +139,7 @@ export default function Sidebar({ role }: { role: Role }) {
                           isActive ? "text-skyterra-cyan" : "text-gray-500"
                         )}
                       />
-                      {!collapsed && (
-                        <span className="flex-1 flex items-center justify-between gap-2">
-                          {item.name}
-                          {"soon" in item && item.soon === true && (
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-300">
-                              Segera
-                            </span>
-                          )}
-                        </span>
-                      )}
+                      {!collapsed && <span>{item.name}</span>}
                     </Link>
                   </li>
                 );

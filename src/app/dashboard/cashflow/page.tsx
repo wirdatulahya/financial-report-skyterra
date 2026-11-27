@@ -5,7 +5,11 @@ import CashflowClient from "./cashflow-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function CashflowPage() {
+export default async function CashflowPage({
+  searchParams,
+}: {
+  searchParams?: { q?: string };
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
@@ -14,6 +18,7 @@ export default async function CashflowPage() {
       transactions={listTransactions(user)}
       canWrite={canWrite(user)}
       lockedDivision={user.role === "super_admin" ? null : user.division}
+      initialQuery={searchParams?.q ?? ""}
     />
   );
 }

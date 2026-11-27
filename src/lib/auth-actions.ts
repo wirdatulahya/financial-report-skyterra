@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -7,9 +8,14 @@ import {
   SESSION_MAX_AGE,
   changePassword,
   createSessionToken,
+  createUserAccount,
+  deleteUserAccount,
+  updateUserAccess,
   verifyCredentials,
   verifySessionToken,
 } from "@/lib/auth";
+import { divisions } from "@/lib/mock-data";
+import type { Role } from "@/lib/roles";
 
 export interface LoginState {
   error?: string;
@@ -81,4 +87,80 @@ export async function changePasswordAction(
   if (!ok) return { status: "error", field: "current", message: "Kata sandi saat ini salah." };
 
   return { status: "success", message: "Kata sandi berhasil diubah. Gunakan kata sandi baru saat login berikutnya." };
+}
+
+export interface UserMgmtState {
+  status?: "success" | "error";
+  message?: string;
+}
+
+const VALID_ROLES: Role[] = ["super_admin", "manajer_divisi", "viewer"];
+
+export async function createUserAction(
+  _prev: UserMgmtState,
+  formData: FormData
+): Promise<UserMgmtState> {
+  const actor = await verifySessionToken(cookies().get(SESSION_COOKIE)?.value);
+  if (!actor) redirect("/login");
+  if (actor.role !== "super_admin") {
+    return { status: "error", message: "Hanya Super Admin yang dapat mengelola pengguna." };
+  }
+
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const role = String(formData.get("role") ?? "") as Role;
+  const division = String(formData.get("division") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  if (!name) return { status: "error", message: "Nama lengkap wajib diisi." };
+  if (!email || !email.includes("@")) return { status: "error", message: "Email tidak valid." };
+  if (!VALID_ROLES.includes(role)) return { status: "error", message: "Peran tidak valid." };
+  if (role !== "super_admin" && !divisions.some((d) => d.name === division)) {
+    return { status: "error", message: "Pilih divisi yang valid." };
+  }
+  if (password.length < 8) {
+    return { status: "error", message: "Kata sandi awal minimal 8 karakter." };
+  }
+
+  const res = await createUserAccount({ name, email, role, division, password });
+  if (!res.ok) return { status: "error", message: res.message };
+
+  revalidatePath("/dashboard/settings");
+  return { status: "success", message: `Akun ${res.user.name} (${res.user.email}) berhasil ditambahkan.` };
+}
+
+export async function updateUserAccessAction(
+  userId: string,
+  role: Role,
+  division: string
+): Promise<UserMgmtState> {
+  const actor = await verifySessionToken(cookies().get(SESSION_COOKIE)?.value);
+  if (!actor) redirect("/login");
+  if (actor.role !== "super_admin") {
+    return { status: "error", message: "Hanya Super Admin yang dapat mengubah hak akses." };
+  }
+  if (!VALID_ROLES.includes(role)) return { status: "error", message: "Peran tidak valid." };
+  if (role !== "super_admin" && !divisions.some((d) => d.name === division)) {
+    return { status: "error", message: "Divisi tidak valid." };
+  }
+
+  const res = updateUserAccess(userId, role, division);
+  if (!res.ok) return { status: "error", message: res.message };
+
+  revalidatePath("/dashboard/settings");
+  return { status: "success", message: `Hak akses ${res.user.name} diperbarui.` };
+}
+
+export async function deleteUserAction(userId: string): Promise<UserMgmtState> {
+  const actor = await verifySessionToken(cookies().get(SESSION_COOKIE)?.value);
+  if (!actor) redirect("/login");
+  if (actor.role !== "super_admin") {
+    return { status: "error", message: "Hanya Super Admin yang dapat menghapus akun." };
+  }
+
+  const res = deleteUserAccount(userId, actor.id);
+  if (!res.ok) return { status: "error", message: res.message };
+
+  revalidatePath("/dashboard/settings");
+  return { status: "success", message: "Akun berhasil dihapus." };
 }

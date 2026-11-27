@@ -4,7 +4,7 @@
 // Memakai Web Crypto agar bisa dipakai di Middleware (Edge) & Server Actions.
 // ============================================================
 
-import type { SessionUser } from "@/lib/roles";
+import type { Role, SessionUser } from "@/lib/roles";
 
 export type { SessionUser };
 
@@ -23,7 +23,7 @@ export const SESSION_MAX_AGE = 60 * 60 * 8; // 8 jam (satu hari kerja)
 // Akun demo — ganti dengan tabel `users` di database (bcrypt/argon2)
 // saat backend sudah tersedia.
 // ------------------------------------------------------------
-const USERS: StoredUser[] = [
+const DEFAULT_USERS: StoredUser[] = [
   {
     id: "usr-001",
     name: "Wirdatul Ahya",
@@ -111,19 +111,92 @@ function timingSafeEqual(a: string, b: string): boolean {
 // (hilang saat server restart) sampai tabel `users` di database tersedia.
 // Disimpan di globalThis karena Next.js bisa memuat modul ini lebih dari sekali
 // (per rute), sehingga variabel modul biasa tidak saling berbagi.
-const globalStore = globalThis as unknown as { __skyterraPw?: Map<string, string> };
+const globalStore = globalThis as unknown as {
+  __skyterraPw?: Map<string, string>;
+  __skyterraUsers?: StoredUser[];
+};
 const passwordOverrides = (globalStore.__skyterraPw ??= new Map<string, string>());
+const usersDb = (globalStore.__skyterraUsers ??= DEFAULT_USERS.map((u) => ({ ...u })));
+
+function toSessionUser(u: StoredUser): SessionUser {
+  const { passwordHash: _omit, ...sessionUser } = u;
+  return sessionUser;
+}
 
 export async function verifyCredentials(
   email: string,
   password: string
 ): Promise<SessionUser | null> {
-  const user = USERS.find((u) => u.email === email.trim().toLowerCase());
+  const user = usersDb.find((u) => u.email === email.trim().toLowerCase());
   const hash = await sha256Hex(password);
   const expected = user ? passwordOverrides.get(user.id) ?? user.passwordHash : "";
   if (!user || !timingSafeEqual(hash, expected)) return null;
-  const { passwordHash: _omit, ...sessionUser } = user;
-  return sessionUser;
+  return toSessionUser(user);
+}
+
+export function listUsers(): SessionUser[] {
+  return usersDb.map(toSessionUser);
+}
+
+export function updateUserAccess(
+  userId: string,
+  role: Role,
+  division: string
+): { ok: true; user: SessionUser } | { ok: false; message: string } {
+  const target = usersDb.find((u) => u.id === userId);
+  if (!target) return { ok: false, message: "Pengguna tidak ditemukan." };
+  if (target.role === "super_admin" && role !== "super_admin") {
+    const adminCount = usersDb.filter((u) => u.role === "super_admin").length;
+    if (adminCount <= 1) {
+      return { ok: false, message: "Minimal harus ada satu Super Admin aktif." };
+    }
+  }
+  target.role = role;
+  target.division = role === "super_admin" ? "Semua Divisi" : division;
+  return { ok: true, user: toSessionUser(target) };
+}
+
+export async function createUserAccount(input: {
+  name: string;
+  email: string;
+  role: Role;
+  division: string;
+  password: string;
+}): Promise<{ ok: true; user: SessionUser } | { ok: false; message: string }> {
+  const normalizedEmail = input.email.trim().toLowerCase();
+  if (usersDb.some((u) => u.email === normalizedEmail)) {
+    return { ok: false, message: `Email ${normalizedEmail} sudah terdaftar.` };
+  }
+  const newUser: StoredUser = {
+    id: `usr-${String(usersDb.length + 1).padStart(3, "0")}-${crypto.randomUUID().slice(0, 4)}`,
+    name: input.name.trim(),
+    email: normalizedEmail,
+    role: input.role,
+    division: input.role === "super_admin" ? "Semua Divisi" : input.division,
+    passwordHash: await sha256Hex(input.password),
+  };
+  usersDb.push(newUser);
+  return { ok: true, user: toSessionUser(newUser) };
+}
+
+export function deleteUserAccount(
+  userId: string,
+  actorId: string
+): { ok: true } | { ok: false; message: string } {
+  if (userId === actorId) {
+    return { ok: false, message: "Tidak dapat menghapus akun yang sedang aktif digunakan." };
+  }
+  const idx = usersDb.findIndex((u) => u.id === userId);
+  if (idx === -1) return { ok: false, message: "Pengguna tidak ditemukan." };
+  if (usersDb[idx].role === "super_admin") {
+    const adminCount = usersDb.filter((u) => u.role === "super_admin").length;
+    if (adminCount <= 1) {
+      return { ok: false, message: "Minimal harus ada satu Super Admin aktif." };
+    }
+  }
+  usersDb.splice(idx, 1);
+  passwordOverrides.delete(userId);
+  return { ok: true };
 }
 
 export async function createSessionToken(user: SessionUser): Promise<string> {

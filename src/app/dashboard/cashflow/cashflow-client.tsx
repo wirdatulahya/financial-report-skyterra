@@ -371,19 +371,25 @@ export default function CashflowClient({
   transactions,
   canWrite,
   lockedDivision,
+  initialQuery = "",
 }: {
   transactions: Transaction[];
   canWrite: boolean;
   lockedDivision: string | null;
+  initialQuery?: string;
 }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [filterType, setFilterType] = useState<"all" | "income" | "expense">("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [toDelete, setToDelete] = useState<string[] | null>(null);
   const [notice, setNotice] = useState<{ type: "ok" | "error"; text: string } | null>(null);
   const [deleting, startDelete] = useTransition();
+
+  useEffect(() => {
+    setSearchQuery(initialQuery);
+  }, [initialQuery]);
 
   // Buang pilihan yang datanya sudah tidak ada
   useEffect(() => {
